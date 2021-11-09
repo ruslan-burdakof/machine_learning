@@ -11,32 +11,6 @@ except:
     with open('data.pickle', 'wb') as f:
         pickle.dump(df, f)
 
-##sex = df.Sex.array.copy()
-##sex[sex=='male']=1
-##sex[sex=='female']=0
-##sex.astype('bool', copy=False)
-##
-##sur = df.Survived.array.copy()
-##
-##psurM = np.zeros(sex.shape, dtype = float)
-##psurW = np.zeros(sex.shape, dtype = float)
-##sm=0.
-##sw=0.
-##for inx, s in enumerate(sur):
-##    if s==1:
-##        if sex[inx]:
-##            sm+=1
-##        else:
-##            sw+=1
-##    psurM[inx] = sm/(inx+1)
-##    psurW[inx] = sw/(inx+1)
-
-
-
-
-##import seaborn as sns
-##sns.violinplot(x=df.Survived, y=df.Age, data=df)
-##plt.show()
 def getNameCat(name, L, R):
     if rL == np.nan or rR == np.nan:
         return "%s:NaN"%(name)
@@ -52,40 +26,70 @@ def histogram(column, nan=True):
     else:
         return np.histogram(column.dropna())
 
+def get_mask(values, L, R):
+    if np.isnan(R):
+        mask = np.isnan(values)
+    else:
+        mask = (L<=values) & (values<=R)
+    return mask
 
-def mean_for_hist(target, values, histogram):
-    hist, bin_edges = histogram
+def mean_for_hist(target, values):
+    hist, bin_edges = histogram(values)
     a_mean = []
-    print(bin_edges)
     for inx,val in enumerate(bin_edges[1:],1):
         R = val
-        print(inx)
         L = bin_edges[inx-1]
-        mask=[1,2]
-        print("L: %.1f R: %.1f Len: %d"%(L,R,len(mask)))
-              
-        if np.isnan(R):
-            mask = np.isnan(target)
-        else:
-            mask = (L<=values) & (values<=R)
-            print(mask)
-        print("L: %.1f R: %.1f Len: %d"%(L,R,len(target[mask])))
-        a_mean.append(np.sum(len(target[mask])))
+        mask = get_mask(values, L, R)
+        a_mean.append(np.sum(target[mask]))
     return a_mean
 
+def get_parse_names_hist(name, bin_edges):
+    parse_names = []
+    for inx,val in enumerate(bin_edges[1:],1):
+        if np.isnan(val):
+            parse_names.append(name+':nan')
+        else:
+            parse_names.append(name+':%.2f'%(0.5*(val+bin_edges[inx-1])))
+            
+    return parse_names
 
-hist = histogram(df.Age)
-surv = mean_for_hist(df.Survived, df.Age, hist)
+def get_edges(bin_edges):
+    for inx,val in enumerate(bin_edges[1:],1):
+        R = val
+        L = bin_edges[inx-1]
+        yield (L,R)
+        
+hist, bin_edges = histogram(df.Age)
+##import seaborn as sns
+##sns.violinplot(x=df.Survived, y=df.Age, data=df)
+##plt.show()
 
-##mask = df.   column[column.isna()]
-##mask = (df.Sex=='male')
-##sM = len(sur[mask])
-##sF = len(sur)-sM
-##L = np.arange(1,len(sur)+1)
-##pS = sur.cumsum()/L
-##pSM = sur[mask].cumsum()/L[0:sM]
-##pSF = sur[-mask].cumsum()/L[0:sF]
-##plt.plot(pS)
-##plt.plot(pSM)
-##plt.plot(pSF)
-##plt.
+
+surv = mean_for_hist(df.Survived, df.Age)
+nameV = get_parse_names_hist('Age',bin_edges)
+LenAge = [sum(get_mask(df.Age, *edg)) for edg in get_edges(bin_edges)]
+plt.subplot(211)
+plt.barh(nameV,LenAge)
+plt.barh(nameV,surv)
+plt.subplot(212)
+
+sex=df.Sex.copy()
+sex[sex=='male']=0
+sex = sex.astype(dtype='bool', copy=False)
+sexL = mean_for_hist(sex, df.Age)
+plt.barh(nameV,LenAge)
+plt.barh(nameV,sexL)
+plt.show()
+
+print('Age')
+print(nameV)
+print('Live')
+print(LenAge)
+print('Female')
+print(sexL)
+print('Male')
+print(np.array(LenAge)-sexL)
+##import seaborn as sns
+##
+##sns.violinplot(x=nameV, y=survV)
+##plt.show()
