@@ -1,4 +1,5 @@
 *.pickle
+*.djvu
 *.csv
 *.zip
 *.pdf
